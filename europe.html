@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的欧洲足迹</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+/* Layout: night-sky map on the left with region jump chips, city ledger grouped by country on the right; stacks on phones. Single dark look by choice, matching the China map. */
+:root {
+  --bg: #0b1120;
+  --panel: #111a2e;
+  --land: #17223a;
+  --land-line: #2a3a5c;
+  --visited: #3a2f1a;
+  --glow: #ffc65c;
+  --fg: #e8ecf5;
+  --muted: #8a97b4;
+  --display: "Noto Serif SC", "Songti SC", serif;
+  --body: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--body);
+  padding-block: 28px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 900; font-size: clamp(28px, 5vw, 44px); margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
+.stats { display: flex; gap: 28px; }
+.stat b { display: block; font-family: var(--display); font-size: 32px; color: var(--glow); font-variant-numeric: tabular-nums; line-height: 1; }
+.stat span { font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; }
+.mapcol { min-width: 0; display: grid; gap: 10px; align-content: start; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump button {
+  font: inherit; font-size: 13px; color: var(--fg); background: var(--panel);
+  border: 1px solid var(--land-line); border-radius: 99px; padding: 5px 12px; cursor: pointer;
+}
+.jump button:hover, .jump button[aria-pressed="true"] { border-color: var(--glow); color: var(--glow); }
+.jump button:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+#map { width: 100%; aspect-ratio: 1.15 / 1; max-width: 100%; min-height: 380px; }
+aside { background: var(--panel); border: 1px solid var(--land-line); border-radius: 10px; padding: 18px 18px 8px; align-self: start; }
+aside h2 { font-family: var(--display); font-size: 16px; margin: 0 0 6px; }
+.country { padding: 10px 0 4px; border-top: 1px solid var(--land-line); }
+.country:first-of-type { border-top: 0; }
+.country h3 { margin: 0 0 4px; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: .08em; }
+ol { list-style: none; margin: 0; padding: 0; }
+li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; cursor: default; }
+li .name { font-size: 15px; }
+li .name small { color: var(--muted); font-size: 11px; margin-left: 6px; }
+li .years { display: flex; gap: 4px; flex-shrink: 0; }
+.y { font-size: 11px; padding: 2px 6px; border-radius: 99px; border: 1px solid var(--land-line); color: var(--muted); font-variant-numeric: tabular-nums; }
+.y.y2024 { color: #ffd88f; border-color: #6b5320; }
+.y.y2025 { color: #ffb37a; border-color: #6b4024; }
+.y.y2026 { color: #ff8f8f; border-color: #6b2a2a; }
+li:hover .name { color: var(--glow); }
+@media (max-width: 860px) { .main { grid-template-columns: 1fr; } }
+body { margin: 0; }
+.back { max-width: 1180px; margin: 0 auto 12px; font-size: 13px; }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--glow); }
+</style>
+</head>
+<body>
+
+<p class="back"><a href="./">← 返回足迹首页</a></p>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>我的欧洲足迹</h1>
+      <p class="sub">2024 – 2026 · 点亮的城市</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="nCity">23</b><span>座城市</span></div>
+      <div class="stat"><b id="nCountry">7</b><span>个国家</span></div>
+    </div>
+  </header>
+  <div class="main">
+    <div class="mapcol">
+      <div class="jump" id="jump" aria-label="跳到地区"></div>
+      <div id="map" role="img" aria-label="欧洲地图，标出去过的城市"></div>
+    </div>
+    <aside>
+      <h2>城市清单</h2>
+      <div id="list"></div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/world.js"></script>
+<script>
+const countries = [
+  { zh: "荷兰", en: "Netherlands" },
+  { zh: "比利时", en: "Belgium" },
+  { zh: "法国", en: "France" },
+  { zh: "摩纳哥", en: null },
+  { zh: "瑞士", en: "Switzerland" },
+  { zh: "德国", en: "Germany" },
+  { zh: "意大利", en: "Italy" }
+];
+const cities = [
+  { name: "阿姆斯特丹", country: "荷兰", c: [4.904, 52.368], years: [2024] },
+  { name: "海牙", country: "荷兰", c: [4.300, 52.070], years: [2024] },
+  { name: "鹿特丹", country: "荷兰", c: [4.477, 51.924], years: [2024] },
+  { name: "代尔夫特", country: "荷兰", c: [4.357, 52.012], years: [2024] },
+  { name: "埃因霍芬", country: "荷兰", c: [5.470, 51.441], years: [2024] },
+  { name: "乌特勒支", country: "荷兰", c: [5.121, 52.091], years: [2025] },
+  { name: "布雷达", country: "荷兰", c: [4.776, 51.589], years: [2026] },
+  { name: "布鲁塞尔", country: "比利时", c: [4.352, 50.847], years: [2024] },
+  { name: "根特", country: "比利时", c: [3.726, 51.054], years: [2026] },
+  { name: "巴黎", country: "法国", c: [2.352, 48.857], years: [2025] },
+  { name: "尼斯", country: "法国", c: [7.262, 43.710], years: [2026] },
+  { name: "芒通", country: "法国", c: [7.497, 43.775], years: [2026] },
+  { name: "昂蒂布", country: "法国", c: [7.125, 43.580], years: [2026] },
+  { name: "埃兹", country: "法国", c: [7.361, 43.728], years: [2026] },
+  { name: "摩纳哥", country: "摩纳哥", c: [7.424, 43.738], years: [2026] },
+  { name: "苏黎世", country: "瑞士", c: [8.541, 47.377], years: [2026] },
+  { name: "伯尔尼", country: "瑞士", c: [7.447, 46.948], years: [2026] },
+  { name: "施皮茨", country: "瑞士", c: [7.686, 46.690], years: [2026] },
+  { name: "日内瓦", country: "瑞士", c: [6.143, 46.204], years: [2026] },
+  { name: "杜塞尔多夫", country: "德国", c: [6.773, 51.228], years: [2025, 2026] },
+  { name: "科隆", country: "德国", c: [6.960, 50.938], years: [2026] },
+  { name: "罗马", country: "意大利", c: [12.496, 41.903], years: [2025] },
+  { name: "米兰", country: "意大利", c: [9.190, 45.464], years: [2025] }
+];
+const views = [
+  { label: "全部", center: [7, 47.5], zoom: 5.5 },
+  { label: "荷兰 · 比利时", center: [4.6, 51.6], zoom: 22 },
+  { label: "蓝色海岸", center: [7.3, 43.7], zoom: 55 },
+  { label: "瑞士", center: [7.3, 46.8], zoom: 20 },
+  { label: "莱茵河", center: [6.5, 51.1], zoom: 26 }
+];
+
+document.getElementById("nCity").textContent = cities.length;
+document.getElementById("nCountry").textContent = new Set(cities.map(d => d.country)).size;
+
+const list = document.getElementById("list");
+countries.forEach(k => {
+  const sec = document.createElement("section");
+  sec.className = "country";
+  sec.innerHTML = `<h3>${k.zh}</h3>`;
+  const ol = document.createElement("ol");
+  cities.forEach((d, i) => {
+    if (d.country !== k.zh) return;
+    const li = document.createElement("li");
+    li.dataset.i = i;
+    li.innerHTML = `<span class="name">${d.name}${d.note ? `<small>${d.note}</small>` : ""}</span>
+      <span class="years">${d.years.map(y => `<span class="y y${y}">${y}</span>`).join("")}</span>`;
+    ol.appendChild(li);
+  });
+  sec.appendChild(ol);
+  list.appendChild(sec);
+});
+
+const css = getComputedStyle(document.documentElement);
+const v = n => css.getPropertyValue(n).trim();
+const chart = echarts.init(document.getElementById("map"));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+chart.setOption({
+  backgroundColor: "transparent",
+  tooltip: {
+    trigger: "item",
+    backgroundColor: v("--panel"), borderColor: v("--land-line"), borderWidth: 1,
+    textStyle: { color: v("--fg") },
+    formatter: p => {
+      const d = cities.find(c => c.name === p.name);
+      return d ? `<b>${d.name}</b> · ${d.country}<br>${d.years.join(" · ")}` : "";
+    }
+  },
+  geo: {
+    map: "world",
+    roam: true,
+    center: views[0].center,
+    zoom: views[0].zoom,
+    scaleLimit: { min: 2, max: 120 },
+    label: { show: false },
+    silent: false,
+    itemStyle: { areaColor: v("--land"), borderColor: v("--land-line"), borderWidth: 0.8 },
+    emphasis: { disabled: true },
+    select: { disabled: true },
+    regions: countries.filter(k => k.en).map(k => ({ name: k.en, itemStyle: { areaColor: v("--visited"), borderColor: "#5b4824" } }))
+  },
+  series: [{
+    type: "effectScatter",
+    coordinateSystem: "geo",
+    data: cities.map(d => ({ name: d.name, value: d.c })),
+    symbolSize: 8,
+    showEffectOn: "render",
+    rippleEffect: { brushType: "stroke", scale: reduce ? 1 : 3.2, period: 4 },
+    itemStyle: { color: v("--glow"), shadowBlur: 12, shadowColor: v("--glow") },
+    label: { show: true, formatter: "{b}", position: "right", color: v("--fg"), fontSize: 12, distance: 5 },
+    labelLayout: { hideOverlap: true },
+    zlevel: 2
+  }]
+});
+
+const jump = document.getElementById("jump");
+views.forEach((vw, i) => {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.id = "jump-" + i;
+  b.textContent = vw.label;
+  b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+  b.addEventListener("click", () => {
+    chart.setOption({ geo: { center: vw.center, zoom: vw.zoom } });
+    jump.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+  });
+  jump.appendChild(b);
+});
+
+addEventListener("resize", () => chart.resize());
+list.addEventListener("mouseover", e => {
+  const li = e.target.closest("li"); if (!li) return;
+  chart.dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: +li.dataset.i });
+});
+list.addEventListener("mouseleave", () => chart.dispatchAction({ type: "hideTip" }));
+</script>
+
+</body>
+</html>

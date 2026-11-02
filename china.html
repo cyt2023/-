@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的中国足迹</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+/* Layout: night-sky map on the left, city ledger on the right; stacks on phones. Single dark look by choice (cities "light up"). */
+:root {
+  --bg: #0b1120;
+  --panel: #111a2e;
+  --land: #17223a;
+  --land-line: #2a3a5c;
+  --visited: #3a2f1a;
+  --glow: #ffc65c;
+  --fg: #e8ecf5;
+  --muted: #8a97b4;
+  --display: "Noto Serif SC", "Songti SC", serif;
+  --body: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); }
+body {
+  font-family: var(--body);
+  padding-block: 28px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 900; font-size: clamp(28px, 5vw, 44px); margin: 0; letter-spacing: .02em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; font-size: 14px; }
+.stats { display: flex; gap: 28px; }
+.stat b { display: block; font-family: var(--display); font-size: 32px; color: var(--glow); font-variant-numeric: tabular-nums; line-height: 1; }
+.stat span { font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; }
+#map { width: 100%; aspect-ratio: 1.25 / 1; max-width: 100%; min-height: 360px; }
+aside { background: var(--panel); border: 1px solid var(--land-line); border-radius: 10px; padding: 18px 18px 8px; align-self: start; }
+aside h2 { font-family: var(--display); font-size: 16px; margin: 0 0 10px; }
+ol { list-style: none; margin: 0; padding: 0; }
+li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; border-top: 1px solid var(--land-line); cursor: default; }
+li:first-child { border-top: 0; }
+li .name { font-weight: 500; font-size: 15px; }
+li .prov { color: var(--muted); font-size: 12px; grid-column: 1; }
+li .years { grid-row: 1 / span 2; grid-column: 2; align-self: center; display: flex; gap: 4px; }
+.y { font-size: 11px; padding: 2px 6px; border-radius: 99px; border: 1px solid var(--land-line); color: var(--muted); font-variant-numeric: tabular-nums; }
+.y.y2024 { color: #ffd88f; border-color: #6b5320; }
+.y.y2025 { color: #ffb37a; border-color: #6b4024; }
+.y.y2026 { color: #ff8f8f; border-color: #6b2a2a; }
+li:hover .name { color: var(--glow); }
+@media (max-width: 820px) { .main { grid-template-columns: 1fr; } }
+body { margin: 0; }
+.back { max-width: 1180px; margin: 0 auto 12px; font-size: 13px; }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--glow); }
+</style>
+</head>
+<body>
+
+<p class="back"><a href="./">← 返回足迹首页</a></p>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>我的中国足迹</h1>
+      <p class="sub">2024 – 2026 · 点亮的城市</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="nCity">12</b><span>座城市</span></div>
+      <div class="stat"><b id="nProv">9</b><span>个省级行政区</span></div>
+    </div>
+  </header>
+  <div class="main">
+    <div id="map" role="img" aria-label="中国地图，标出去过的城市"></div>
+    <aside>
+      <h2>城市清单</h2>
+      <ol id="list"></ol>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/js/china.js"></script>
+<script>
+const cities = [
+  { name: "北京", prov: "北京", c: [116.407, 39.904], years: [2024, 2025, 2026], pos: "top" },
+  { name: "天津", prov: "天津", c: [117.200, 39.084], years: [2025], pos: "right" },
+  { name: "上海", prov: "上海", c: [121.473, 31.230], years: [2024, 2025], pos: "right" },
+  { name: "苏州", prov: "江苏", c: [120.585, 31.299], years: [2024, 2025], pos: "bottom" },
+  { name: "南京", prov: "江苏", c: [118.797, 32.060], years: [2024], pos: "top" },
+  { name: "西安", prov: "陕西", c: [108.940, 34.341], years: [2025, 2026], pos: "top" },
+  { name: "汉中", prov: "陕西", c: [107.023, 33.067], years: [2026], pos: "left" },
+  { name: "武汉", prov: "湖北", c: [114.305, 30.593], years: [2024], pos: "right" },
+  { name: "宜昌", prov: "湖北", c: [111.286, 30.692], years: [2024], pos: "left" },
+  { name: "烟台", prov: "山东", c: [121.448, 37.464], years: [2024], pos: "right" },
+  { name: "深圳", prov: "广东", c: [114.057, 22.543], years: [2024], pos: "left" },
+  { name: "香港", prov: "香港", c: [114.169, 22.319], years: [2024, 2026], pos: "bottom" }
+];
+const provs = [...new Set(cities.map(d => d.prov))];
+document.getElementById("nCity").textContent = cities.length;
+document.getElementById("nProv").textContent = provs.length;
+
+const list = document.getElementById("list");
+cities.forEach((d, i) => {
+  const li = document.createElement("li");
+  li.dataset.i = i;
+  li.innerHTML = `<span class="name">${d.name}</span><span class="prov">${d.prov === d.name ? "直辖市 / 特区" : d.prov + "省"}</span>
+    <span class="years">${d.years.map(y => `<span class="y y${y}">${y}</span>`).join("")}</span>`;
+  list.appendChild(li);
+});
+
+const css = getComputedStyle(document.documentElement);
+const v = n => css.getPropertyValue(n).trim();
+const chart = echarts.init(document.getElementById("map"));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+chart.setOption({
+  backgroundColor: "transparent",
+  tooltip: {
+    trigger: "item",
+    backgroundColor: v("--panel"), borderColor: v("--land-line"), borderWidth: 1,
+    textStyle: { color: v("--fg") },
+    formatter: p => {
+      const d = cities.find(c => c.name === p.name);
+      return d ? `<b>${d.name}</b><br>${d.years.join(" · ")}` : p.name;
+    }
+  },
+  geo: {
+    map: "china",
+    roam: true,
+    zoom: 1.15,
+    center: [105, 36],
+    scaleLimit: { min: 0.8, max: 8 },
+    label: { show: false },
+    itemStyle: { areaColor: v("--land"), borderColor: v("--land-line"), borderWidth: 0.8 },
+    emphasis: { label: { show: false }, itemStyle: { areaColor: "#22304f" } },
+    regions: provs.map(p => ({ name: p, itemStyle: { areaColor: v("--visited"), borderColor: "#5b4824" } }))
+  },
+  series: [{
+    type: "effectScatter",
+    coordinateSystem: "geo",
+    data: cities.map(d => ({ name: d.name, value: d.c, label: { position: d.pos } })),
+    symbolSize: 9,
+    showEffectOn: "render",
+    rippleEffect: { brushType: "stroke", scale: reduce ? 1 : 3.5, period: 4 },
+    itemStyle: { color: v("--glow"), shadowBlur: 14, shadowColor: v("--glow") },
+    label: { show: true, formatter: "{b}", color: v("--fg"), fontSize: 12, distance: 6 },
+    zlevel: 2
+  }]
+});
+
+addEventListener("resize", () => chart.resize());
+list.addEventListener("mouseover", e => {
+  const li = e.target.closest("li"); if (!li) return;
+  chart.dispatchAction({ type: "showTip", seriesIndex: 0, dataIndex: +li.dataset.i });
+});
+list.addEventListener("mouseleave", () => chart.dispatchAction({ type: "hideTip" }));
+</script>
+
+</body>
+</html>

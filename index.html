@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我的足迹</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #0b1120;
+  --panel: #111a2e;
+  --land-line: #2a3a5c;
+  --glow: #ffc65c;
+  --fg: #e8ecf5;
+  --muted: #8a97b4;
+  --display: "Noto Serif SC", "Songti SC", serif;
+  --body: "Noto Sans SC", "PingFang SC", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { background: var(--bg); color: var(--fg); margin: 0; }
+body {
+  font-family: var(--body);
+  padding-block: 56px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 880px; margin: 0 auto; display: grid; gap: 32px; }
+h1 { font-family: var(--display); font-weight: 900; font-size: clamp(32px, 6vw, 52px); margin: 0; letter-spacing: .02em; }
+.sub { color: var(--muted); margin: 8px 0 0; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+a.card {
+  display: grid; gap: 14px; padding: 24px; border-radius: 10px; text-decoration: none; color: var(--fg);
+  background: var(--panel); border: 1px solid var(--land-line); transition: border-color .2s;
+}
+a.card:hover, a.card:focus-visible { border-color: var(--glow); outline: none; }
+.card h2 { font-family: var(--display); font-size: 24px; margin: 0; }
+.nums { display: flex; gap: 24px; }
+.nums b { display: block; font-family: var(--display); font-size: 30px; color: var(--glow); line-height: 1; font-variant-numeric: tabular-nums; }
+.nums span { font-size: 12px; color: var(--muted); letter-spacing: .08em; }
+.go { font-size: 13px; color: var(--muted); }
+a.card:hover .go { color: var(--glow); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>我的足迹</h1>
+    <p class="sub">2024 – 2026 · 走过的城市，在地图上点亮</p>
+  </header>
+  <div class="cards">
+    <a class="card" href="china.html">
+      <h2>中国</h2>
+      <div class="nums">
+        <div><b>12</b><span>座城市</span></div>
+        <div><b>9</b><span>个省级行政区</span></div>
+      </div>
+      <span class="go">打开地图 →</span>
+    </a>
+    <a class="card" href="europe.html">
+      <h2>欧洲</h2>
+      <div class="nums">
+        <div><b>23</b><span>座城市</span></div>
+        <div><b>7</b><span>个国家</span></div>
+      </div>
+      <span class="go">打开地图 →</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>
